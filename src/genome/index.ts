@@ -1,7 +1,21 @@
-// Phase B: port from ashlrcode/src/genome/
-// Files to move: manifest.ts, retriever.ts, scribe.ts, init.ts,
-// generations.ts, fitness.ts, strategies.ts, embeddings.ts, jsonl.ts
-// Leave commands.ts in ashlrcode (CLI layer).
-// Tests: genome.test.ts, genome-embeddings.test.ts, genome-strategies.test.ts
+/**
+ * Genome module — genetic AI development loop.
+ *
+ * Self-evolving project specs via RAG + scribe protocol.
+ * commands.ts (the CLI layer) stays in ashlrcode; everything else lives here.
+ *
+ * Uses per-file star re-exports so every symbol defined in the module is
+ * exposed through `@ashlr/core-efficiency/genome` without a hand-maintained list.
+ * Manifest's `estimateTokens` conflicts with the tokens module barrel — handled
+ * in the root ../index.ts, not here.
+ */
 
-export const GENOME_MODULE_STATUS = "placeholder" as const;
+export * from "./embeddings.ts";
+export * from "./fitness.ts";
+export * from "./generations.ts";
+export * from "./init.ts";
+export * from "./jsonl.ts";
+export * from "./manifest.ts";
+export * from "./retriever.ts";
+export * from "./scribe.ts";
+export * from "./strategies.ts";
