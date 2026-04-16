@@ -11,7 +11,8 @@
     "./compression": "./src/compression/index.ts",
     "./budget": "./src/budget/index.ts",
     "./tokens": "./src/tokens/index.ts",
-    "./anthropic": "./src/anthropic/index.ts"
+    "./anthropic": "./src/anthropic/index.ts",
+    "./session-log": "./src/session-log/index.ts"
   },
   "scripts": {
     "test": "bun test",

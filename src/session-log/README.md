@@ -16,11 +16,8 @@ that any agent can read or tail to recover the shared history.
 
 ## Install / import
 
-For now, import via the full subpath (a short-form subpath export will be
-added in a follow-up `package.json` change):
-
 ```ts
-import { append, read, tail, rotate } from "@ashlr/core-efficiency/src/session-log";
+import { append, read, tail, rotate } from "@ashlr/core-efficiency/session-log";
 // or, relative from inside the monorepo:
 import { append } from "./src/session-log/index.ts";
 ```
