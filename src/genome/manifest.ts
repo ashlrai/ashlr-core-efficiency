@@ -7,7 +7,7 @@
 
 import { existsSync } from "fs";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
-import { dirname, join } from "path";
+import { dirname, join, sep } from "path";
 import { estimateTokensFromString as estimateTokens } from "../tokens/index.ts";
 
 // ---------------------------------------------------------------------------
@@ -70,8 +70,10 @@ export function manifestPath(cwd: string): string {
 export function sectionPath(cwd: string, relativePath: string): string {
   const resolved = join(genomeDir(cwd), relativePath);
   // Prevent path traversal — resolved path must stay within genome dir.
-  // Append separator to prevent "genome-evil" matching "genome" prefix.
-  const gDir = genomeDir(cwd) + "/";
+  // Append platform separator to prevent "genome-evil" matching "genome" prefix.
+  // Must use `path.sep` (not hardcoded "/") because `join` on Windows produces
+  // "\"-separated paths, so appending "/" would mismatch every startsWith check.
+  const gDir = genomeDir(cwd) + sep;
   if (!resolved.startsWith(gDir)) {
     throw new Error(`Invalid section path: ${relativePath} escapes genome directory`);
   }
