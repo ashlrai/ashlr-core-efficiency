@@ -52,19 +52,19 @@ import {
   autoCompact,
   snipCompact,
   contextCollapse,
-  PromptPriority,
 } from "@ashlr/core-efficiency/compression";
 
-// Truncate any tool result that exceeds 2 KB (head + tail elided middle).
-const trimmed = snipCompact(messages, { maxBytes: 2048 });
+// Truncate tool results over 2,000 chars (keeps the first and last 800).
+const trimmed = snipCompact(messages);
 
 // Drop short or duplicate messages to reduce prompt size.
 const collapsed = contextCollapse(messages);
 
 // LLM-summarize old turns when approaching the context limit.
+// summarizer: any LLMSummarizer (an object with `stream(request)`, e.g. your provider client).
 const compacted = await autoCompact(messages, summarizer, {
-  targetTokens: 50_000,
-  priority: PromptPriority.High,
+  maxContextTokens: 50_000,
+  recentMessageCount: 10,
 });
 ```
 
@@ -230,7 +230,7 @@ Path separators are normalized internally; no Unix-only assumptions.
 
 ```bash
 bun install
-bun test          # ~17 unit tests (budget + tokens)
+bun test          # full suite (~2,300 tests)
 bun run typecheck
 bun run build     # emit dist/ for Node consumers
 ```
