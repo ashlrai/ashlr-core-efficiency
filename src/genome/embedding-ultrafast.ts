@@ -1,0 +1,166 @@
+/**
+ * UltraFastEmbedder — deterministic, dependency-free, sub-millisecond embeddings.
+ *
+ * The terminal fallback in the embedding cascade. When Ollama and remote
+ * providers are unavailable (offline, timed-out, or rate-limited), this
+ * embedder ALWAYS succeeds and never blocks: it projects text into a
+ * fixed-dimensional vector using the "hashing trick" (feature hashing).
+ *
+ * Properties guaranteed by this module (relied on by embedding-router.ts and
+ * embedding-resilience.ts):
+ *   - new UltraFastEmbedder().embed(text) returns a number[] of length
+ *     ULTRAFAST_EMBEDDING_DIM
+ *   - deterministic: identical input -> identical output
+ *   - distinct inputs -> (almost always) distinct outputs
+ *   - L2-normalized so cosineSimilarity behaves sanely
+ *   - pure CPU, no I/O, no network, no async — completes in microseconds
+ *
+ * This is NOT a semantic embedder. It captures lexical (token n-gram) overlap,
+ * which is sufficient for the cache-miss fallback path where the only
+ * requirement is "produce a stable, comparable vector without failing".
+ */
+
+/**
+ * Output dimensionality of the ultrafast embedder.
+ *
+ * 256 is a deliberate choice: small enough to compute and compare in
+ * microseconds, large enough that feature-hash collisions are rare for the
+ * short texts (queries, section headers, tool args) seen on the fallback path.
+ */
+export const ULTRAFAST_EMBEDDING_DIM = 256;
+
+/**
+ * A record describing a single ultrafast embedding event, for audit/telemetry.
+ * Emitted by callers that want to track how often the terminal fallback fired.
+ */
+export interface UltraFastAuditRecord {
+  /** Stable content hash of the embedded text (for dedup in audit logs). */
+  contentHash: string;
+  /** Character length of the input text. */
+  textLength: number;
+  /** Number of distinct n-gram features hashed. */
+  featureCount: number;
+  /** Output dimensionality (always ULTRAFAST_EMBEDDING_DIM). */
+  dimension: number;
+  /** Wall-clock time spent embedding, in milliseconds (typically < 1). */
+  latencyMs: number;
+  /** ISO-8601 timestamp of when the embedding was produced. */
+  recordedAt: string;
+}
+
+/**
+ * FNV-1a 32-bit hash. Fast, well-distributed, dependency-free, deterministic
+ * across platforms (pure integer arithmetic with `Math.imul`).
+ */
+function fnv1a(str: string, seed = 0x811c9dc5): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Tokenize text into lowercased word tokens plus character bigrams of each
+ * token. Word tokens carry semantic-ish signal; char bigrams add robustness to
+ * minor spelling differences and make distinct short strings hash distinctly.
+ */
+function featurize(text: string): string[] {
+  const features: string[] = [];
+  const words = text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+
+  // Unigrams.
+  for (const w of words) features.push(`w:${w}`);
+
+  // Word bigrams — cheap context signal.
+  for (let i = 0; i + 1 < words.length; i++) {
+    features.push(`b:${words[i]}_${words[i + 1]}`);
+  }
+
+  // Character trigrams of each word — robustness + collision avoidance.
+  for (const w of words) {
+    const padded = `^${w}$`;
+    for (let i = 0; i + 3 <= padded.length; i++) {
+      features.push(`c:${padded.slice(i, i + 3)}`);
+    }
+  }
+
+  // Guarantee at least one feature even for empty/whitespace-only input, so
+  // the fallback path never returns an all-zero (un-normalizable) vector.
+  if (features.length === 0) features.push("\u0000:empty");
+
+  return features;
+}
+
+/**
+ * Deterministic hash-projection embedder.
+ *
+ * Stateless and reusable: a single instance may embed any number of texts.
+ * Construction is free, so callers may freely `new UltraFastEmbedder()` per
+ * call as the cascade code does.
+ */
+export class UltraFastEmbedder {
+  readonly dimension: number;
+
+  constructor(dimension: number = ULTRAFAST_EMBEDDING_DIM) {
+    this.dimension = dimension;
+  }
+
+  /**
+   * Embed `text` into an L2-normalized vector of length `this.dimension`.
+   * Always succeeds; never throws; never performs I/O.
+   */
+  embed(text: string): number[] {
+    const dim = this.dimension;
+    const vec = new Float64Array(dim);
+    const features = featurize(text);
+
+    for (const feature of features) {
+      // Primary hash -> bucket index. Secondary hash -> sign, so collisions
+      // partially cancel rather than always reinforce (signed feature hashing).
+      const h = fnv1a(feature);
+      const idx = h % dim;
+      const sign = (fnv1a(feature, 0x9e3779b1) & 1) === 0 ? 1 : -1;
+      vec[idx]! += sign;
+    }
+
+    // L2-normalize so cosine similarity is well-behaved and magnitudes are
+    // comparable across texts of different lengths.
+    let norm = 0;
+    for (let i = 0; i < dim; i++) norm += vec[i]! * vec[i]!;
+    norm = Math.sqrt(norm);
+
+    const out = new Array<number>(dim);
+    if (norm === 0) {
+      // Unreachable given the empty-input guard above, but stay defensive.
+      out.fill(0);
+      out[0] = 1;
+      return out;
+    }
+    for (let i = 0; i < dim; i++) out[i] = vec[i]! / norm;
+    return out;
+  }
+
+  /**
+   * Embed `text` and return an audit record alongside the vector. Useful for
+   * callers tracking how often the terminal fallback fired.
+   */
+  embedWithAudit(text: string): { embedding: number[]; audit: UltraFastAuditRecord } {
+    const start = performance.now();
+    const features = featurize(text);
+    const embedding = this.embed(text);
+    const latencyMs = performance.now() - start;
+    return {
+      embedding,
+      audit: {
+        contentHash: fnv1a(text).toString(16),
+        textLength: text.length,
+        featureCount: features.length,
+        dimension: this.dimension,
+        latencyMs,
+        recordedAt: new Date().toISOString(),
+      },
+    };
+  }
+}

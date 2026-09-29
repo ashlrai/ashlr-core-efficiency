@@ -387,7 +387,7 @@ describe("StreamingCompressionMonitor — provider codec drift", () => {
 
   test("streamingFeedbackPath returns path inside genome/evolution", () => {
     const p = streamingFeedbackPath("/projects/myapp");
-    expect(p).toContain(".ashlrcode/genome/evolution");
+    expect(p).toContain(join(".ashlrcode", "genome", "evolution"));
     expect(p).toContain("streaming-compression.jsonl");
   });
 

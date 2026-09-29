@@ -15,7 +15,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   SessionOutcomeRecorder,
@@ -181,7 +181,7 @@ describe("JSONL persistence", () => {
 
   test("readSessionOutcomes skips corrupt JSONL lines gracefully", () => {
     const outcomesPath = process.env.ASHLR_SESSION_OUTCOMES_PATH!;
-    const dir = outcomesPath.substring(0, outcomesPath.lastIndexOf("/"));
+    const dir = dirname(outcomesPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       outcomesPath,

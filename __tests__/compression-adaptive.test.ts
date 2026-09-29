@@ -79,7 +79,7 @@ function makeThresholds(overrides: Partial<Record<1 | 2 | 3 | 4, { successRate: 
 describe("compressionHistoryPath", () => {
   test("returns path inside genome/evolution directory", () => {
     const p = compressionHistoryPath("/projects/myapp");
-    expect(p).toContain(".ashlrcode/genome/evolution");
+    expect(p).toContain(join(".ashlrcode", "genome", "evolution"));
     expect(p).toContain("compression-history.jsonl");
   });
 
