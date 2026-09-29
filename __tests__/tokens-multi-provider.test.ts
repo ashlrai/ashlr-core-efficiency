@@ -10,7 +10,7 @@
  *   - Per-provider multipliers: Llama / Qwen apply ≥1× multiplier
  */
 
-import { describe, expect, test, beforeEach } from "bun:test";
+import { describe, expect, test, beforeEach, setDefaultTimeout } from "bun:test";
 import {
   getEncodingForModel,
   estimateTokensWithModel,
@@ -19,6 +19,10 @@ import {
   _forceLoaderFailure,
 } from "../src/tokens/index.ts";
 import type { Message } from "../src/types/index.ts";
+
+// Real tiktoken encodes across every provider model; on Windows CI runners
+// single tests take 6-13 s, well past bun's 5 s default.
+setDefaultTimeout(30_000);
 
 beforeEach(() => {
   _resetTokenizerCache();

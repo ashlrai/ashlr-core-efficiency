@@ -358,10 +358,15 @@ describe("retrieveSectionsAdaptive — audit JSONL trail", () => {
     await rm(cwd, { recursive: true, force: true });
   });
 
-  async function waitForAudit(auditFile: string, maxMs = 500): Promise<void> {
+  // The audit append is fire-and-forget, so wait for the expected line count
+  // (slow Windows runners can lag the second append behind the first).
+  async function waitForAudit(auditFile: string, minLines = 1, maxMs = 3000): Promise<void> {
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
-      if (existsSync(auditFile) && (await readFile(auditFile, "utf-8")).trim().length > 0) return;
+      if (existsSync(auditFile)) {
+        const n = (await readFile(auditFile, "utf-8")).split("\n").filter((l) => l.trim().length > 0).length;
+        if (n >= minLines) return;
+      }
       await new Promise((r) => setTimeout(r, 20));
     }
   }
@@ -404,7 +409,7 @@ describe("retrieveSectionsAdaptive — audit JSONL trail", () => {
     await retrieveSectionsAdaptive("vision goal", cwd, 2000, { strategy: "keyword" });
 
     const auditFile = join(cwd, ".ashlrcode", "genome", "evolution", "retrieval-audit.jsonl");
-    await waitForAudit(auditFile);
+    await waitForAudit(auditFile, 2);
 
     const raw = await readFile(auditFile, "utf-8");
     const lines = raw.split("\n").filter((l) => l.trim().length > 0);

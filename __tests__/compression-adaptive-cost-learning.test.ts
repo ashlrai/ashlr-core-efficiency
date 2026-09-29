@@ -74,7 +74,7 @@ describe("CompressorLearner.costHistoryPath", () => {
   test("is inside genome/evolution directory", () => {
     const l = new CompressorLearner("/projects/myapp");
     const p = l.costHistoryPath();
-    expect(p).toContain(".ashlrcode/genome/evolution");
+    expect(p).toContain(join(".ashlrcode", "genome", "evolution"));
     expect(p).toContain("compression-cost-history.jsonl");
   });
 

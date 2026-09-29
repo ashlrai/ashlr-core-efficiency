@@ -461,7 +461,7 @@ describe("Cross-session JSONL persistence", () => {
 
   test("feedbackPath() returns path inside genome/evolution", () => {
     const p = fb.feedbackPath();
-    expect(p).toContain(".ashlrcode/genome/evolution");
+    expect(p).toContain(join(".ashlrcode", "genome", "evolution"));
     expect(p).toContain("compressor-feedback.jsonl");
   });
 

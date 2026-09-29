@@ -92,7 +92,7 @@ async function seedRecords(
 describe("consolidationAuditPath", () => {
   test("returns path inside genome/evolution directory", () => {
     const p = consolidationAuditPath("/projects/myapp");
-    expect(p).toContain(".ashlrcode/genome/evolution");
+    expect(p).toContain(join(".ashlrcode", "genome", "evolution"));
     expect(p).toContain("compression-consolidation.jsonl");
   });
 

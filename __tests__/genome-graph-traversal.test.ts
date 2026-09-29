@@ -14,7 +14,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { join } from "path";
+import { dirname, join } from "path";
 import { tmpdir } from "os";
 import type { GenomeManifest, SectionMeta } from "../src/genome/manifest.ts";
 
@@ -68,7 +68,7 @@ async function writeGenomeSection(
   content: string,
 ): Promise<void> {
   const fullPath = join(cwd, ".ashlrcode", "genome", relPath);
-  const dir = fullPath.split("/").slice(0, -1).join("/");
+  const dir = dirname(fullPath);
   await mkdir(dir, { recursive: true });
   await writeFile(fullPath, content, "utf-8");
 }
