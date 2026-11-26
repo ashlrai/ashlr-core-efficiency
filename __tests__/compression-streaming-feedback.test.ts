@@ -38,6 +38,17 @@ async function makeTmpDir(): Promise<string> {
   return base;
 }
 
+async function waitForSignals(cwd: string): Promise<StreamingCompressionSignal[]> {
+  const deadline = Date.now() + 1_000;
+  const path = streamingFeedbackPath(cwd);
+  do {
+    const signals = await readJsonl<StreamingCompressionSignal>(path);
+    if (signals.length > 0) return signals;
+    await Bun.sleep(10);
+  } while (Date.now() < deadline);
+  throw new Error("Streaming compression signals were not written within 1 second");
+}
+
 /**
  * Build a fake LLMSummarizer that emits the provided sequence of StreamEvents
  * then ends.
@@ -208,10 +219,7 @@ describe("StreamingCompressionMonitor — high-cardinality tool results", () => 
 
     await drainGenerator(monitor.stream(makeRequest([{ role: "user", content: "run tool" }])));
 
-    // Give the async I/O a tick to flush
-    await new Promise((r) => setTimeout(r, 20));
-
-    const signals = await readJsonl<StreamingCompressionSignal>(streamingFeedbackPath(tmp));
+    const signals = await waitForSignals(tmp);
     expect(signals.length).toBeGreaterThanOrEqual(1);
     const signal = signals[0]!;
     expect(signal.tier).toBe(3);
@@ -405,9 +413,7 @@ describe("StreamingCompressionMonitor — provider codec drift", () => {
     });
 
     await drainGenerator(monitor.stream(makeRequest([{ role: "user", content: "hi" }])));
-    await new Promise((r) => setTimeout(r, 20));
-
-    const signals = await readJsonl<StreamingCompressionSignal>(streamingFeedbackPath(tmp));
+    const signals = await waitForSignals(tmp);
     expect(signals.length).toBeGreaterThanOrEqual(1);
     expect(signals[0]!.provider).toBe("deepseek");
     expect(signals[0]!.tier).toBe(3);
@@ -465,9 +471,7 @@ describe("StreamingCompressionMonitor — thinking token explosion", () => {
     });
 
     await drainGenerator(monitor.stream(makeRequest([{ role: "user", content: "think hard" }])));
-    await new Promise((r) => setTimeout(r, 20));
-
-    const signals = await readJsonl<StreamingCompressionSignal>(streamingFeedbackPath(tmp));
+    const signals = await waitForSignals(tmp);
     expect(signals.length).toBeGreaterThanOrEqual(1);
     expect(signals[0]!.overage_pct).toBeGreaterThan(100);
   });
