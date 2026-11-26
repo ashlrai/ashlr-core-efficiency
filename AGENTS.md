@@ -6,4 +6,4 @@ Follow the [Ashlr Fleet Constitution, Article 1](https://github.com/ashlrai/phan
 
 ## Verify
 
-Run `bun install --frozen-lockfile`, `bun run typecheck`, `bun test` and `bun run build` before opening a PR. Keep the supported Bun and Node runtime checks in the verification suite.
+Run `bun install --frozen-lockfile --ignore-scripts`, `bun run typecheck`, `bun test` and `bun run build` before opening a PR. Keep the supported Bun and Node runtime checks in the verification suite.

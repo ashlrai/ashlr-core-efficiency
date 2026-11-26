@@ -29,7 +29,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
       - name: Run tests
         run: bun test
 
@@ -53,7 +53,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
       - name: Typecheck
         run: bunx tsc --noEmit
 
@@ -77,7 +77,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
       - name: Build
         run: bun run build
 
