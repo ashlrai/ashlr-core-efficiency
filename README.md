@@ -6,6 +6,8 @@ Extracted from [ashlrcode](https://github.com/ashlrai/ashlrcode) and shared by t
 
 **Platform support:** macOS / Linux / Windows on Bun >= 1.0 and Node >= 20.
 
+Part of the [AshlrAI open-source ecosystem](https://github.com/ashlrai#the-open-source-ecosystem).
+
 ---
 
 ## Modules
